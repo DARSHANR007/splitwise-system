@@ -45,7 +45,7 @@ func (u *User) payExpense(g *Group, amount float64) {
 		return
 	}
 	u.balance[g.Id] -= amount
-	fmt.Println("remaining amount to be paid")
+	fmt.Println("remaining amount to be paid %d", u.balance[g.Id])
 }
 func (u *User) createGroup(
 	name string,
@@ -76,4 +76,52 @@ func (u *User) createGroup(
 	u.balance[id] = 0
 
 	return newgroup
+}
+
+func (u *User) splitbill(id int, splitAmounts map[int]float64) bool {
+	group, ok := u.GroupJoined[id]
+	if !ok || group == nil {
+		fmt.Println("User not part of the group")
+		return false
+	}
+	if group.total == 0 {
+		fmt.Println("No expense to split")
+		return false
+	}
+
+	switch group.splittype {
+	case price:
+		perPersonAmount := group.total / float64(len(group.Members))
+		for _, member := range group.Members {
+			group.splitamount[member.Id] = perPersonAmount
+			member.balance[id] += perPersonAmount
+		}
+	case percentage:
+		if len(splitAmounts) == 0 {
+			fmt.Println("Percent split requires input percentages")
+			return false
+		}
+		totalPct := 0.0
+		for _, member := range group.Members {
+			pct, ok := splitAmounts[member.Id]
+			if !ok {
+				fmt.Println("Missing percentage for member", member.Id)
+				return false
+			}
+			group.splitamount[member.Id] = pct
+			totalPct += pct
+		}
+		if totalPct != 100.0 {
+			fmt.Println("Percentages do not sum to 100")
+			return false
+		}
+		for _, member := range group.Members {
+			amount := (group.splitamount[member.Id] / 100.0) * group.total
+			group.splitamount[member.Id] = amount
+			member.balance[id] += amount
+		}
+	}
+
+	fmt.Println("Bill split successfully")
+	return true
 }

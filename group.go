@@ -4,7 +4,7 @@ type Group struct {
 	Name        string
 	Members     []*User
 	Id          int
-	total       float6
+	total       float64
 	splitamount map[int]float64
 	splittype   Splittype
 }
